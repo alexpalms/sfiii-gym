@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-name"
+version = "0.1.0"
+keywords = ["keyword1", "keyword2"]
+maintainers = [
+  { name="name1", email="name1@domain.ext" },
+  { name="name2", email="name2@domain.ext" },
+]
+authors = [
+  { name="name1", email="name1@domain.ext" },
+  { name="name2", email="name2@domain.ext" },
+]
+description = "Add your description here"
+readme = { file = "README.md", content-type = "text/markdown"}
+license = { file = "LICENSE" }
+
+requires-python = ">=3.12"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+# Added with `uv add package_name`
+dependencies = [
+    "vizdoom>=1.2.4",
+]
+
+# Added with `uv add --group dev package_name`
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "pyright>=1.1.405",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.12.12",
+    "twine>=6.2.0",
+]
+docs = [
+    "furo>=2025.7.19",
+    "myst-parser>=4.0.1",
+    "sphinx>=8.2.3",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-autodoc-typehints>=3.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/alexpalms/python-project-template"
+Issues = "https://github.com/alexpalms/python-project-template/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+project_name = ["py.typed", "data/*"]
+
+[project.scripts]
+project-name-cli = "project_name.cli:main"
+
+[tool.pyright]
+include = ["src", "examples", "tests", "docs"]
+typeCheckingMode = "strict"
+reportUnusedVariable = "error"
+reportMissingImports = "error"
+reportMissingParameterType = "error"
+reportMissingTypeArgument = "error"
+reportUntypedFunctionDecorator = "error"
+reportMissingTypeStubs = "error"
+extraPaths = ["stubs"]
+exclude = []
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+exclude = []
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "UP", "I", "B", "N", "S", "A", "C4", "T20"
+]
+ignore = ["E501", "D107"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"src/**/__init__.py" = ["D104", "D107"]  # ignore module and __init__ docstrings
+"tests/**" = ["S101"]  # allow asserts in tests
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.coverage.run]
+source = ["src"]
+omit = []
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
