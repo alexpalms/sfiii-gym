@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "project-name"
+name = "sfiii-gym"
 version = "0.1.0"
 keywords = ["keyword1", "keyword2"]
 maintainers = [
@@ -33,7 +33,7 @@ classifiers = [
 ]
 # Added with `uv add package_name`
 dependencies = [
-    "vizdoom>=1.2.4",
+    "mametoolkit>=1.1.0",
 ]
 
 # Added with `uv add --group dev package_name`
@@ -55,8 +55,8 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/alexpalms/python-project-template"
-Issues = "https://github.com/alexpalms/python-project-template/issues"
+Homepage = "https://github.com/alexpalms/sfiii-gym"
+Issues = "https://github.com/alexpalms/sfiii-gym/issues"
 
 [tool.setuptools]
 include-package-data = true
@@ -65,10 +65,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-project_name = ["py.typed", "data/*"]
-
-[project.scripts]
-project-name-cli = "project_name.cli:main"
+sfiii_gym = ["py.typed", "data/*"]
 
 [tool.pyright]
 include = ["src", "examples", "tests", "docs"]
