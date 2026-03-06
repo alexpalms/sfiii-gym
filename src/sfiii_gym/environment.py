@@ -1,5 +1,8 @@
 from pathlib import Path
+from typing import Any
 
+import numpy as np
+from gymnasium import Env, spaces
 from MAMEToolkit.emulator import Address, Emulator
 
 from sfiii_gym.actions import Actions
@@ -17,58 +20,12 @@ def add_rewards(old_data, new_data):
     return new_data
 
 
-# Returns the list of memory addresses required to train on Street Fighter
-def setup_memory_addresses() -> dict[str, Address]:
-    return {
-        "fighting": Address("0x02011389", "u8"),
-        "winsP1": Address("0x02011383", "u8"),
-        "winsP2": Address("0x02011385", "u8"),
-        "healthP1": Address("0x02068D0A", "s16"),
-        "healthP2": Address("0x020691A2", "s16"),
-        "sideP1": Address("0x02016B8E", "u8"),
-        "sideP2": Address("0x02068C76", "u8"),
-        "characterP1": Address("0x02011387", "u8"),
-        "characterP2": Address("0x02011388", "u8"),
-    }
-
-
-# Converts and index (action) into the relevant movement action Enum, depending on the player
-def index_to_move_action(action: int) -> list[Actions]:
-    return {
-        0: [],
-        1: [Actions.P1_LEFT],
-        2: [Actions.P1_LEFT, Actions.P1_UP],
-        3: [Actions.P1_UP],
-        4: [Actions.P1_UP, Actions.P1_RIGHT],
-        5: [Actions.P1_RIGHT],
-        6: [Actions.P1_RIGHT, Actions.P1_DOWN],
-        7: [Actions.P1_DOWN],
-        8: [Actions.P1_DOWN, Actions.P1_LEFT],
-    }[action]
-
-
-# Converts and index (action) into the relevant attack action Enum, depending on the player
-def index_to_attack_action(action: int) -> list[Actions]:
-    return {
-        0: [],
-        1: [Actions.P1_JPUNCH],
-        2: [Actions.P1_SPUNCH],
-        3: [Actions.P1_FPUNCH],
-        4: [Actions.P1_SKICK],
-        5: [Actions.P1_FKICK],
-        6: [Actions.P1_RKICK],
-        7: [Actions.P1_SPUNCH, Actions.P1_FKICK],
-        8: [Actions.P1_JPUNCH, Actions.P1_SKICK],
-        9: [Actions.P1_FPUNCH, Actions.P1_RKICK],
-    }[action]
-
-
 # The Street Fighter specific interface for training an agent against the game
-class Environment:
+class Environment(Env[dict[str, np.ndarray], np.integer]):
     # env_id - the unique identifier of the emulator environment, used to create fifo pipes
     # difficulty - the difficult to be used in story mode gameplay
     # frame_ratio - see Emulator class
-    # render, throttle, debug - see Console class
+    # render, throttle - see Console class
     def __init__(
         self,
         env_id: str,
@@ -77,14 +34,28 @@ class Environment:
         render: bool = True,
         throttle: bool = False,
     ):
+
         self.difficulty = difficulty
         self.frame_ratio = frame_ratio
         self.throttle = throttle
+
+        self.memory_addresses = {
+            "fighting": Address("0x02011389", "u8"),
+            "winsP1": Address("0x02011383", "u8"),
+            "winsP2": Address("0x02011385", "u8"),
+            "healthP1": Address("0x02068D0A", "s16"),
+            "healthP2": Address("0x020691A2", "s16"),
+            "sideP1": Address("0x02016B8E", "u8"),
+            "sideP2": Address("0x02068C76", "u8"),
+            "characterP1": Address("0x02011387", "u8"),
+            "characterP2": Address("0x02011388", "u8"),
+        }
+
         self.emu = Emulator(
             env_id,
             _ROMS_PATH,
             "sfiii3n",
-            setup_memory_addresses(),
+            self.memory_addresses,
             frame_ratio=frame_ratio,
             render=render,
             throttle=throttle,
@@ -93,17 +64,37 @@ class Environment:
             debug=False,
             binary_path=None,
         )
-        self.started = False
-        self.expected_health = {"P1": 0, "P2": 0}
-        self.expected_wins = {"P1": 0, "P2": 0}
-        self.round_done = False
-        self.stage_done = False
-        self.game_done = False
-        self.stage = 1
+
+        self.action_map = {
+            0: [],
+            1: [Actions.P1_LEFT],
+            2: [Actions.P1_LEFT, Actions.P1_UP],
+            3: [Actions.P1_UP],
+            4: [Actions.P1_UP, Actions.P1_RIGHT],
+            5: [Actions.P1_RIGHT],
+            6: [Actions.P1_RIGHT, Actions.P1_DOWN],
+            7: [Actions.P1_DOWN],
+            8: [Actions.P1_DOWN, Actions.P1_LEFT],
+            9: [Actions.P1_JPUNCH],
+            10: [Actions.P1_SPUNCH],
+            11: [Actions.P1_FPUNCH],
+            12: [Actions.P1_SKICK],
+            13: [Actions.P1_FKICK],
+            14: [Actions.P1_RKICK],
+            15: [Actions.P1_SPUNCH, Actions.P1_FKICK],
+            16: [Actions.P1_JPUNCH, Actions.P1_SKICK],
+            17: [Actions.P1_FPUNCH, Actions.P1_RKICK],
+        }
+
+        self.observation_space = spaces.Dict(
+            {"frame": spaces.Box(low=0, high=255, shape=(224, 384, 3), dtype=np.uint8)}
+        )
+
+        self.action_space = spaces.Discrete(len(self.action_map))
 
     # Runs a set of action steps over a series of time steps
     # Used for transitioning the emulator through non-learnable gameplay, aka. title screens, character selects
-    def run_steps(self, steps: list[dict[str, int | list[Actions]]]):
+    def _run_steps(self, steps: list[dict[str, int | list[Actions]]]):
         for step in steps:
             for _ in range(step["wait"]):
                 self.emu.step([])
@@ -112,72 +103,62 @@ class Environment:
     # Must be called first after creating this class
     # Sends actions to the game until the learnable gameplay starts
     # Returns the first few frames of gameplay
-    def start(self):
+    def _start(self):
         if self.throttle:
-            for i in range(int(250 / self.frame_ratio)):
+            for _ in range(int(250 / self.frame_ratio)):
                 self.emu.step([])
-        self.run_steps(set_difficulty(self.frame_ratio, self.difficulty))
-        self.run_steps(start_game(self.frame_ratio))
-        frames = self.wait_for_fight_start()
+        self._run_steps(set_difficulty(self.frame_ratio, self.difficulty))
+        self._run_steps(start_game(self.frame_ratio))
+        frames = self._wait_for_fight_start()
         self.started = True
         return frames
 
     # Observes the game and waits for the fight to start
-    def wait_for_fight_start(self):
+    def _wait_for_fight_start(self):
         data = self.emu.step([])
         while data["fighting"] == 0:
             data = self.emu.step([])
         self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
-        data = self.sub_step([])
+        data = self._sub_step([])
         return data["frame"]
-
-    def reset(self):
-        if self.game_done:
-            return self.new_game()
-        elif self.stage_done:
-            return self.next_stage()
-        elif self.round_done:
-            return self.next_round()
-        else:
-            raise OSError("Reset called while gameplay still running")
 
     # To be called when a round finishes
     # Performs the necessary steps to take the agent to the next round of gameplay
-    def next_round(self):
+    def _next_round(self):
         self.round_done = False
         self.expected_health = {"P1": 0, "P2": 0}
-        return self.wait_for_fight_start()
+        return self._wait_for_fight_start()
 
     # To be called when a game finishes
     # Performs the necessary steps to take the agent(s) to the next game and resets the necessary book keeping variables
-    def next_stage(self):
-        self.wait_for_continue()
-        self.run_steps(next_stage(self.frame_ratio))
+    def _next_stage(self):
+        self._wait_for_continue()
+        self._run_steps(next_stage(self.frame_ratio))
         self.expected_health = {"P1": 0, "P2": 0}
         self.expected_wins = {"P1": 0, "P2": 0}
         self.round_done = False
         self.stage_done = False
         return self.wait_for_fight_start()
 
-    def new_game(self):
-        self.wait_for_continue()
-        self.run_steps(new_game(self.frame_ratio))
+    def _new_game(self):
+        self._wait_for_continue()
+        self._run_steps(new_game(self.frame_ratio))
         self.expected_health = {"P1": 0, "P2": 0}
         self.expected_wins = {"P1": 0, "P2": 0}
         self.round_done = False
         self.stage_done = False
         self.game_done = False
         self.stage = 1
-        return self.wait_for_fight_start()
+        return self._wait_for_fight_start()
 
     # Steps the emulator along until the screen goes black at the very end of a game
-    def wait_for_continue(self):
+    def _wait_for_continue(self):
         data = self.emu.step([])
         while data["frame"].sum() != 0:
             data = self.emu.step([])
 
     # Steps the emulator along until the round is definitely over
-    def run_till_victor(self, data):
+    def _run_till_victor(self, data):
         while (
             self.expected_wins["P1"] == data["winsP1"]
             and self.expected_wins["P2"] == data["winsP2"]
@@ -187,7 +168,7 @@ class Environment:
         return data
 
     # Checks whether the round or game has finished
-    def check_done(self, data):
+    def _check_done(self, data):
         if data["fighting"] == 0:
             data = self.run_till_victor(data)
             self.round_done = True
@@ -200,7 +181,7 @@ class Environment:
 
     # Steps the emulator along by one time step and feeds in any actions that require pressing
     # Takes the data returned from the step and updates book keeping variables
-    def sub_step(self, actions):
+    def _sub_step(self, actions):
         data = self.emu.step([action.value for action in actions])
 
         p1_diff = self.expected_health["P1"] - data["healthP1"]
@@ -210,26 +191,44 @@ class Environment:
         data["reward"] = p2_diff - p1_diff
         return data
 
+    def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple(
+        dict[str, np.ndarray], dict[str, Any]
+    ):
+        self.started = False
+        self.expected_health = {"P1": 0, "P2": 0}
+        self.expected_wins = {"P1": 0, "P2": 0}
+        self.round_done = False
+        self.stage_done = False
+        self.game_done = False
+        self.stage = 1
+
     # Steps the emulator along by the requested amount of frames required for the agent to provide actions
-    def step(self, move_action, attack_action):
-        if self.started:
-            if not self.round_done and not self.stage_done and not self.game_done:
-                actions = []
-                actions += index_to_move_action(move_action)
-                actions += index_to_attack_action(attack_action)
-                data = self.sub_step(actions)
-                data = self.check_done(data)
-                return (
-                    data["frame"],
-                    data["reward"],
-                    self.round_done,
-                    self.stage_done,
-                    self.game_done,
-                )
-            else:
-                raise OSError("Attempted to step while characters are not fighting")
-        else:
-            raise OSError("Start must be called before stepping")
+    def step(
+        self, action: np.integer
+    ) -> tuple[dict[str, np.ndarray], float, bool, bool, dict[str, Any]]:
+        data = self._sub_step(self.action_map[action])
+        data = self._check_done(data)
+        terminated = False
+        truncated = False
+        info = {
+            "game_done": self.game_done,
+            "stage_done": self.stage_done,
+            "round_done": self.round_done,
+        }
+
+        if self.game_done:
+            terminated = True
+        elif self.stage_done:
+            self._next_stage()
+        elif self.round_done:
+            self._next_round()
+        return (
+            data["frame"],
+            data["reward"],
+            terminated,
+            truncated,
+            info,
+        )
 
     # Safely closes emulator
     def close(self):

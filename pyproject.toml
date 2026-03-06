@@ -33,6 +33,7 @@ classifiers = [
 ]
 # Added with `uv add package_name`
 dependencies = [
+    "gymnasium>=1.2.3",
     "mametoolkit>=1.1.0",
 ]
 
