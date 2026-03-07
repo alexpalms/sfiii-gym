@@ -64,6 +64,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         self.difficulty = difficulty
         self.frame_ratio = frame_ratio
         self.throttle = throttle
+        self._data: dict[str, np.ndarray] | None = None
 
         self.memory_addresses = {
             "fighting": Address("0x02011389", "u8"),
@@ -91,6 +92,10 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             binary_path=None,
         )
 
+        self._char_list = {"Gill", "Alex", "Ryu", "Yun", "Dudley", "Necro", "Hugo",
+                        "Ibuki", "Elena", "Oro", "Yang", "Ken", "Sean", "Urien",
+                        "Gouki", "", "Chun-Li", "Makoto", "Q", "Twelve", "Remy"}
+
         self.action_map: dict[int, list[Action]] = {
             0: [],
             1: [Actions.P1_LEFT],
@@ -107,9 +112,10 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             12: [Actions.P1_SKICK],
             13: [Actions.P1_FKICK],
             14: [Actions.P1_RKICK],
-            15: [Actions.P1_SPUNCH, Actions.P1_FKICK],
-            16: [Actions.P1_JPUNCH, Actions.P1_SKICK],
-            17: [Actions.P1_FPUNCH, Actions.P1_RKICK],
+            # No button combinatinos
+            #15: [Actions.P1_SPUNCH, Actions.P1_FKICK],
+            #16: [Actions.P1_JPUNCH, Actions.P1_SKICK],
+            #17: [Actions.P1_FPUNCH, Actions.P1_RKICK],
         }
 
         self.observation_space = spaces.Dict(
@@ -117,9 +123,9 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
                 "frame": spaces.Box(low=0, high=255, shape=(224, 384, 3), dtype=np.uint8),
                 "healthP1": spaces.Box(low=-1, high=160, dtype=np.int8),
                 "healthP2": spaces.Box(low=-1, high=160, dtype=np.int8),
-                "sideP1": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
-                "sideP2": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
-                "characterP2": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
+                "sideP1": spaces.MultiBinary(1),
+                "sideP2": spaces.MultiBinary(1),
+                "characterP2": spaces.Discrete(len(self._char_list)),
             }
         )
 
@@ -134,8 +140,8 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         self.stage_done = False
         self.game_done = False
         self.stage = 1
-        data = self._new_game()
-        return self._get_obs(data), {}
+        self._new_game()
+        return self._get_obs(), {}
 
     # Steps the emulator along by the requested amount of frames required for the agent to provide actions
     def step(
@@ -161,24 +167,27 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
 
         return (
             self._get_obs(data),
-            data["reward"],
+            float(data["reward"]),
             terminated,
             truncated,
             info,
         )
 
+    def render(self) -> np.ndarray:
+        return self._get_obs()["frame"]
+
     # Safely closes emulator
     def close(self):
         self.emu.close()
 
-    def _get_obs(self, data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    def _get_obs(self) -> dict[str, np.ndarray]:
         return {
-            "frame": data["frame"],
-            "healthP1": np.int16(data["healthP1"]),
-            "healthP2": np.int16(data["healthP2"]),
-            "sideP1": np.uint8(data["sideP1"]),
-            "sideP2": np.uint8(data["sideP2"]),
-            "characterP2": np.uint8(data["characterP2"]),
+            "frame": self._data["frame"],
+            "healthP1": np.ndarray(self._data["healthP1"], dtype=np.int8),
+            "healthP2": np.ndarray(self._data["healthP2"], dtype=np.int8),
+            "sideP1": np.ndarray(self._data["sideP1"], dtype=np.uint8),
+            "sideP2": np.ndarray(self._data["sideP2"], dtype=np.uint8),
+            "characterP2": np.ndarray(self._data["characterP2"], dtype=np.uint8),
         }
 
     # Runs a set of action steps over a series of time steps
@@ -268,13 +277,12 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
     # Steps the emulator along by one time step and feeds in any actions that require pressing
     # Takes the data returned from the step and updates book keeping variables
     def _sub_step(self, actions: list[Action]) -> dict[str, np.ndarray]:
-        data = self.emu.step([action.value for action in actions])
+        self._data = self.emu.step([action.value for action in actions])
 
-        p1_diff = self.expected_health["P1"] - data["healthP1"]
-        p2_diff = self.expected_health["P2"] - data["healthP2"]
-        self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
+        p1_diff = self.expected_health["P1"] - self._data["healthP1"]
+        p2_diff = self.expected_health["P2"] - self._data["healthP2"]
+        self.expected_health = {"P1": self._data["healthP1"], "P2": self._data["healthP2"]}
 
-        data["reward"] = p2_diff - p1_diff
-        return data
+        self._data["reward"] = p2_diff - p1_diff
 
 
