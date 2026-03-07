@@ -2,7 +2,7 @@ import random
 
 from sfiii_gym.environment import Environment
 
-env = Environment("env1")
+env = Environment("env1", "./assets/rom")
 env.start()
 while True:
     move_action = random.randint(0, 8)

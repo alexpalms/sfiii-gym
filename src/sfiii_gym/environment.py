@@ -1,3 +1,5 @@
+import hashlib
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +10,10 @@ from MAMEToolkit.emulator import Address, Emulator
 from sfiii_gym.actions import Actions
 from sfiii_gym.steps import new_game, next_stage, set_difficulty, start_game
 
-_ROMS_PATH = str(Path(__file__).parent / "rom")
+logger = logging.getLogger(__name__)
+
+_ROM_FILENAME = "sfiii3n.zip"
+_ROM_SHA256 = "7239b5eb005488db22ace477501c574e9420c0ab70aeeb0795dfeb474284d416"
 
 
 # Combines the data of multiple time steps
@@ -29,11 +34,32 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
     def __init__(
         self,
         env_id: str,
+        roms_path: str,
         difficulty: int = 6,
         frame_ratio: int = 6,
         render: bool = True,
         throttle: bool = False,
     ):
+
+        rom_path = Path(roms_path) / _ROM_FILENAME
+        if not rom_path.is_file():
+            msg = (
+                f"ROM '{_ROM_FILENAME}' not found in '{roms_path}'.\n"
+                f"It can be downloaded from: https://wowroms.com/en/roms/mame/download-street-fighter-iii-3rd-strike-fight-for-the-futur-japan-clone/106255.html\n"
+                f"DISCLAIMER: Each user is responsible for ensuring they have the legal right to obtain and use this ROM."
+            )
+            logger.error(msg)
+            raise FileNotFoundError(msg)
+
+        actual_sha256 = hashlib.sha256(rom_path.read_bytes()).hexdigest()
+        if actual_sha256 != _ROM_SHA256:
+            msg = (
+                f"ROM '{_ROM_FILENAME}' failed SHA256 checksum verification.\n"
+                f"Expected: {_ROM_SHA256}\n"
+                f"Got:      {actual_sha256}"
+            )
+            logger.error(msg)
+            raise ValueError(msg)
 
         self.difficulty = difficulty
         self.frame_ratio = frame_ratio
@@ -53,7 +79,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
 
         self.emu = Emulator(
             env_id,
-            _ROMS_PATH,
+            roms_path,
             "sfiii3n",
             self.memory_addresses,
             frame_ratio=frame_ratio,
@@ -191,9 +217,9 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         data["reward"] = p2_diff - p1_diff
         return data
 
-    def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple(
+    def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[
         dict[str, np.ndarray], dict[str, Any]
-    ):
+    ]:
         self.started = False
         self.expected_health = {"P1": 0, "P2": 0}
         self.expected_wins = {"P1": 0, "P2": 0}
