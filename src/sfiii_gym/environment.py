@@ -5,7 +5,7 @@ from typing import Any
 
 import numpy as np
 from gymnasium import Env, spaces
-from MAMEToolkit.emulator import Address, Emulator
+from MAMEToolkit.emulator import Address, Emulator, Action
 
 from sfiii_gym.actions import Actions
 from sfiii_gym.steps import new_game, next_stage, set_difficulty, start_game
@@ -17,7 +17,7 @@ _ROM_SHA256 = "7239b5eb005488db22ace477501c574e9420c0ab70aeeb0795dfeb474284d416"
 
 
 # Combines the data of multiple time steps
-def add_rewards(old_data, new_data):
+def add_rewards(old_data: dict[str, np.ndarray], new_data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     for k in old_data.keys():
         if "rewards" in k:
             for player in old_data[k]:
@@ -91,7 +91,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             binary_path=None,
         )
 
-        self.action_map = {
+        self.action_map: dict[int, list[Action]] = {
             0: [],
             1: [Actions.P1_LEFT],
             2: [Actions.P1_LEFT, Actions.P1_UP],
@@ -113,126 +113,35 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         }
 
         self.observation_space = spaces.Dict(
-            {"frame": spaces.Box(low=0, high=255, shape=(224, 384, 3), dtype=np.uint8)}
+            {
+                "frame": spaces.Box(low=0, high=255, shape=(224, 384, 3), dtype=np.uint8),
+                "healthP1": spaces.Box(low=-1, high=160, dtype=np.int8),
+                "healthP2": spaces.Box(low=-1, high=160, dtype=np.int8),
+                "sideP1": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
+                "sideP2": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
+                "characterP2": spaces.Box(low=0, high=255, shape=(), dtype=np.uint8),
+            }
         )
 
         self.action_space = spaces.Discrete(len(self.action_map))
 
-    # Runs a set of action steps over a series of time steps
-    # Used for transitioning the emulator through non-learnable gameplay, aka. title screens, character selects
-    def _run_steps(self, steps: list[dict[str, int | list[Actions]]]):
-        for step in steps:
-            for _ in range(step["wait"]):
-                self.emu.step([])
-            self.emu.step([action.value for action in step["actions"]])
-
-    # Must be called first after creating this class
-    # Sends actions to the game until the learnable gameplay starts
-    # Returns the first few frames of gameplay
-    def _start(self):
-        if self.throttle:
-            for _ in range(int(250 / self.frame_ratio)):
-                self.emu.step([])
-        self._run_steps(set_difficulty(self.frame_ratio, self.difficulty))
-        self._run_steps(start_game(self.frame_ratio))
-        frames = self._wait_for_fight_start()
-        self.started = True
-        return frames
-
-    # Observes the game and waits for the fight to start
-    def _wait_for_fight_start(self):
-        data = self.emu.step([])
-        while data["fighting"] == 0:
-            data = self.emu.step([])
-        self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
-        data = self._sub_step([])
-        return data["frame"]
-
-    # To be called when a round finishes
-    # Performs the necessary steps to take the agent to the next round of gameplay
-    def _next_round(self):
-        self.round_done = False
-        self.expected_health = {"P1": 0, "P2": 0}
-        return self._wait_for_fight_start()
-
-    # To be called when a game finishes
-    # Performs the necessary steps to take the agent(s) to the next game and resets the necessary book keeping variables
-    def _next_stage(self):
-        self._wait_for_continue()
-        self._run_steps(next_stage(self.frame_ratio))
-        self.expected_health = {"P1": 0, "P2": 0}
-        self.expected_wins = {"P1": 0, "P2": 0}
-        self.round_done = False
-        self.stage_done = False
-        return self.wait_for_fight_start()
-
-    def _new_game(self):
-        self._wait_for_continue()
-        self._run_steps(new_game(self.frame_ratio))
-        self.expected_health = {"P1": 0, "P2": 0}
-        self.expected_wins = {"P1": 0, "P2": 0}
-        self.round_done = False
-        self.stage_done = False
-        self.game_done = False
-        self.stage = 1
-        return self._wait_for_fight_start()
-
-    # Steps the emulator along until the screen goes black at the very end of a game
-    def _wait_for_continue(self):
-        data = self.emu.step([])
-        while data["frame"].sum() != 0:
-            data = self.emu.step([])
-
-    # Steps the emulator along until the round is definitely over
-    def _run_till_victor(self, data):
-        while (
-            self.expected_wins["P1"] == data["winsP1"]
-            and self.expected_wins["P2"] == data["winsP2"]
-        ):
-            data = add_rewards(data, self.sub_step([]))
-        self.expected_wins = {"P1": data["winsP1"], "P2": data["winsP2"]}
-        return data
-
-    # Checks whether the round or game has finished
-    def _check_done(self, data):
-        if data["fighting"] == 0:
-            data = self.run_till_victor(data)
-            self.round_done = True
-            if data["winsP1"] == 2:
-                self.stage_done = True
-                self.stage += 1
-            if data["winsP2"] == 2:
-                self.game_done = True
-        return data
-
-    # Steps the emulator along by one time step and feeds in any actions that require pressing
-    # Takes the data returned from the step and updates book keeping variables
-    def _sub_step(self, actions):
-        data = self.emu.step([action.value for action in actions])
-
-        p1_diff = self.expected_health["P1"] - data["healthP1"]
-        p2_diff = self.expected_health["P2"] - data["healthP2"]
-        self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
-
-        data["reward"] = p2_diff - p1_diff
-        return data
-
-    def reset(self, *, seed: int | None = None, options: dict | None = None) -> tuple[
+    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None) -> tuple[
         dict[str, np.ndarray], dict[str, Any]
     ]:
-        self.started = False
         self.expected_health = {"P1": 0, "P2": 0}
         self.expected_wins = {"P1": 0, "P2": 0}
         self.round_done = False
         self.stage_done = False
         self.game_done = False
         self.stage = 1
+        data = self._new_game()
+        return self._get_obs(data), {}
 
     # Steps the emulator along by the requested amount of frames required for the agent to provide actions
     def step(
         self, action: np.integer
     ) -> tuple[dict[str, np.ndarray], float, bool, bool, dict[str, Any]]:
-        data = self._sub_step(self.action_map[action])
+        data = self._sub_step(self.action_map[int(action)])
         data = self._check_done(data)
         terminated = False
         truncated = False
@@ -245,11 +154,13 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         if self.game_done:
             terminated = True
         elif self.stage_done:
-            self._next_stage()
+            data = self._next_stage()
         elif self.round_done:
-            self._next_round()
+            data = self._next_round()
+
+
         return (
-            data["frame"],
+            self._get_obs(data),
             data["reward"],
             terminated,
             truncated,
@@ -259,3 +170,111 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
     # Safely closes emulator
     def close(self):
         self.emu.close()
+
+    def _get_obs(self, data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        return {
+            "frame": data["frame"],
+            "healthP1": np.int16(data["healthP1"]),
+            "healthP2": np.int16(data["healthP2"]),
+            "sideP1": np.uint8(data["sideP1"]),
+            "sideP2": np.uint8(data["sideP2"]),
+            "characterP2": np.uint8(data["characterP2"]),
+        }
+
+    # Runs a set of action steps over a series of time steps
+    # Used for transitioning the emulator through non-learnable gameplay, aka. title screens, character selects
+    def _run_steps(self, steps: list[dict[str, int | list[Actions]]]):
+        for step in steps:
+            for _ in range(step["wait"]):
+                self.emu.step([])
+            self.emu.step([action.value for action in step["actions"]])
+
+    # Must be called first after creating this class
+    # Sends actions to the game until the learnable gameplay starts
+    # Returns the first few frames of gameplay
+    def _start(self) -> None:
+        if self.throttle:
+            for _ in range(int(250 / self.frame_ratio)):
+                self.emu.step([])
+        self._run_steps(set_difficulty(self.frame_ratio, self.difficulty))
+        self._run_steps(start_game(self.frame_ratio))
+
+    # Observes the game and waits for the fight to start
+    def _wait_for_fight_start(self) -> dict[str, np.ndarray]:
+        data = self.emu.step([])
+        while data["fighting"] == 0:
+            data = self.emu.step([])
+        self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
+        data = self._sub_step([])
+        return data["frame"]
+
+    # To be called when a round finishes
+    # Performs the necessary steps to take the agent to the next round of gameplay
+    def _next_round(self) -> dict[str, np.ndarray]:
+        self.round_done = False
+        self.expected_health = {"P1": 0, "P2": 0}
+        return self._wait_for_fight_start()
+
+    # To be called when a game finishes
+    # Performs the necessary steps to take the agent(s) to the next game and resets the necessary book keeping variables
+    def _next_stage(self) -> dict[str, np.ndarray]:
+        self._wait_for_continue()
+        self._run_steps(next_stage(self.frame_ratio))
+        self.expected_health = {"P1": 0, "P2": 0}
+        self.expected_wins = {"P1": 0, "P2": 0}
+        self.round_done = False
+        self.stage_done = False
+        return self._wait_for_fight_start()
+
+    def _new_game(self) -> dict[str, np.ndarray]:
+        self._wait_for_continue()
+        self._run_steps(new_game(self.frame_ratio))
+        self.expected_health = {"P1": 0, "P2": 0}
+        self.expected_wins = {"P1": 0, "P2": 0}
+        self.round_done = False
+        self.stage_done = False
+        self.game_done = False
+        self.stage = 1
+        return self._wait_for_fight_start()
+
+    # Steps the emulator along until the screen goes black at the very end of a game
+    def _wait_for_continue(self) -> None:
+        data = self.emu.step([])
+        while data["frame"].sum() != 0:
+            data = self.emu.step([])
+
+    # Steps the emulator along until the round is definitely over
+    def _run_till_victor(self, data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        while (
+            self.expected_wins["P1"] == data["winsP1"]
+            and self.expected_wins["P2"] == data["winsP2"]
+        ):
+            data = add_rewards(data, self._sub_step([]))
+        self.expected_wins = {"P1": data["winsP1"], "P2": data["winsP2"]}
+        return data
+
+    # Checks whether the round or game has finished
+    def _check_done(self, data: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+        if data["fighting"] == 0:
+            data = self._run_till_victor(data)
+            self.round_done = True
+            if data["winsP1"] == 2:
+                self.stage_done = True
+                self.stage += 1
+            if data["winsP2"] == 2:
+                self.game_done = True
+        return data
+
+    # Steps the emulator along by one time step and feeds in any actions that require pressing
+    # Takes the data returned from the step and updates book keeping variables
+    def _sub_step(self, actions: list[Action]) -> dict[str, np.ndarray]:
+        data = self.emu.step([action.value for action in actions])
+
+        p1_diff = self.expected_health["P1"] - data["healthP1"]
+        p2_diff = self.expected_health["P2"] - data["healthP2"]
+        self.expected_health = {"P1": data["healthP1"], "P2": data["healthP2"]}
+
+        data["reward"] = p2_diff - p1_diff
+        return data
+
+
