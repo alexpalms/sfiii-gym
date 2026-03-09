@@ -77,7 +77,7 @@ reportMissingParameterType = "error"
 reportMissingTypeArgument = "error"
 reportUntypedFunctionDecorator = "error"
 reportMissingTypeStubs = "error"
-# extraPaths = ["stubs"]
+stubPath = "stubs"
 exclude = []
 
 [tool.ruff]

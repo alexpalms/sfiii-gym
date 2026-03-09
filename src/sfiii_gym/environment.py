@@ -2,14 +2,14 @@ import hashlib
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 from gymnasium import Env, spaces
 from MAMEToolkit.emulator import Action, Address, Emulator
 
 from sfiii_gym.actions import Actions
-from sfiii_gym.steps import new_game, next_stage, game_settings
+from sfiii_gym.steps import game_settings, new_game, next_stage
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -203,7 +203,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             obs["healthP2"],
             obs["sideP1"],
             obs["sideP2"],
-            self._char_list[obs["characterP2"][0]],
+            self._char_list[cast(int, obs["characterP2"][0])],
             obs["frame"].shape,
         )
         return obs["frame"]

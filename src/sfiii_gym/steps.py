@@ -1,11 +1,11 @@
 from MAMEToolkit.sf_environment.Actions import Actions
 
-
 # A = Agent
 # C = Computer
 # H = Human
 # An enurable class used to specify the set of action steps required to perform different predefined tasks
 # E.g. changing the story mode difficulty, or starting a new game in single player story mode
+
 
 def game_settings(
     frame_ratio: int, difficulty: int
@@ -17,11 +17,17 @@ def game_settings(
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]}, # Resetting to factory settings (mainly to deactivate bonus stage)
+        {
+            "wait": int(10 / frame_ratio),
+            "actions": [Actions.P1_DOWN],
+        },  # Resetting to factory settings (mainly to deactivate bonus stage)
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH, Actions.P1_FPUNCH]},
+        {
+            "wait": int(10 / frame_ratio),
+            "actions": [Actions.P1_JPUNCH, Actions.P1_FPUNCH],
+        },
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]}
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
     ]
     if (difficulty % 8) < 3:
         steps += [
