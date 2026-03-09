@@ -9,7 +9,7 @@ from gymnasium import Env, spaces
 from MAMEToolkit.emulator import Action, Address, Emulator
 
 from sfiii_gym.actions import Actions
-from sfiii_gym.steps import new_game, next_stage, set_difficulty, start_game
+from sfiii_gym.steps import new_game, next_stage, game_settings
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -90,7 +90,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             binary_path=None,
         )
 
-        self._char_list = {
+        self._char_list = [
             "Gill",
             "Alex",
             "Ryu",
@@ -112,7 +112,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             "Q",
             "Twelve",
             "Remy",
-        }
+        ]
 
         self.action_map: dict[int, list[Action]] = {
             0: [],
@@ -150,6 +150,9 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         )
 
         self.action_space = spaces.Discrete(len(self.action_map))
+
+        # Initialize environment
+        self._start()
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -200,7 +203,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             obs["healthP2"],
             obs["sideP1"],
             obs["sideP2"],
-            obs["characterP2"],
+            self._char_list[obs["characterP2"][0]],
             obs["frame"].shape,
         )
         return obs["frame"]
@@ -234,8 +237,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
         if self.throttle:
             for _ in range(int(250 / self.frame_ratio)):
                 self.emu.step([])
-        self._run_steps(set_difficulty(self.frame_ratio, self.difficulty))
-        self._run_steps(start_game(self.frame_ratio))
+        self._run_steps(game_settings(self.frame_ratio, self.difficulty))
 
     # Observes the game and waits for the fight to start
     def _wait_for_fight_start(self) -> None:

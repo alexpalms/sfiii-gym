@@ -6,20 +6,22 @@ from MAMEToolkit.sf_environment.Actions import Actions
 # H = Human
 # An enurable class used to specify the set of action steps required to perform different predefined tasks
 # E.g. changing the story mode difficulty, or starting a new game in single player story mode
-def set_difficulty(
+
+def game_settings(
     frame_ratio: int, difficulty: int
 ) -> list[dict[str, int | list[Actions]]]:
     steps = [
         {"wait": 0, "actions": [Actions.SERVICE]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]}, # Resetting to factory settings (mainly to deactivate bonus stage)
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH, Actions.P1_FPUNCH]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
+        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]}
     ]
     if (difficulty % 8) < 3:
         steps += [
@@ -52,20 +54,6 @@ def set_difficulty(
     return steps
 
 
-def start_game(frame_ratio: int) -> list[dict[str, int | list[Actions]]]:
-    return [
-        {"wait": int(300 / frame_ratio), "actions": [Actions.COIN_P1]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.COIN_P1]},
-        {"wait": int(60 / frame_ratio), "actions": [Actions.P1_START]},
-        {
-            "wait": int(80 / frame_ratio),
-            "actions": [Actions.P1_LEFT, Actions.P1_JPUNCH],
-        },
-        {"wait": int(60 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-        {"wait": int(60 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-    ]
-
-
 def next_stage(frame_ratio: int) -> list[dict[str, int | list[Actions]]]:
     return (
         [{"wait": int(60 / frame_ratio), "actions": [Actions.P1_JPUNCH]}]
@@ -85,6 +73,10 @@ def new_game(frame_ratio: int) -> list[dict[str, int | list[Actions]]]:
         {"wait": int(300 / frame_ratio), "actions": [Actions.COIN_P1]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.COIN_P1]},
         {"wait": int(60 / frame_ratio), "actions": [Actions.P1_START]},
+        {"wait": int(80 / frame_ratio), "actions": [Actions.P1_LEFT]},
+        {"wait": int(80 / frame_ratio), "actions": [Actions.P1_LEFT]},
+        {"wait": int(80 / frame_ratio), "actions": [Actions.P1_LEFT]},
+        {"wait": int(80 / frame_ratio), "actions": [Actions.P1_LEFT]},
         {
             "wait": int(80 / frame_ratio),
             "actions": [Actions.P1_LEFT, Actions.P1_JPUNCH],
