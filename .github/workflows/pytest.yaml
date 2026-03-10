@@ -24,10 +24,5 @@ jobs:
       - name: Install package
         run: uv sync
 
-      - name: Run pytest
-        run: uv run pytest --cov=project_name --cov-report=term-missing --cov-report=xml
-
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Run pytest (unit tests only)
+        run: uv run pytest tests/unit/

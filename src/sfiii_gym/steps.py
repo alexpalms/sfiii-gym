@@ -1,4 +1,4 @@
-from MAMEToolkit.sf_environment.Actions import Actions
+from sfiii_gym.actions import Actions
 
 # A = Agent
 # C = Computer

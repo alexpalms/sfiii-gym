@@ -10,14 +10,5 @@
             "console": "integratedTerminal",
             "justMyCode": true
         }
-    ],
-    "inputs": [
-        {
-            "id": "agent_type",
-            "type": "pickString",
-            "description": "Select the agent type",
-            "options": ["random"],
-            "default": "random"
-        }
     ]
 }

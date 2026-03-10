@@ -2,7 +2,7 @@ import hashlib
 import logging
 import sys
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 from gymnasium import Env, spaces
@@ -23,7 +23,7 @@ _ROM_SHA256 = "7239b5eb005488db22ace477501c574e9420c0ab70aeeb0795dfeb474284d416"
 
 
 # The Street Fighter specific interface for training an agent against the game
-class Environment(Env[dict[str, np.ndarray], np.integer]):
+class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
     # env_id - the unique identifier of the emulator environment, used to create fifo pipes
     # difficulty - the difficult to be used in story mode gameplay
     # frame_ratio - see Emulator class
@@ -145,7 +145,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
                 "healthP2": spaces.Box(low=-1, high=160, dtype=np.int16),
                 "sideP1": spaces.MultiBinary(1),
                 "sideP2": spaces.MultiBinary(1),
-                "characterP2": spaces.Discrete(len(self._char_list)),
+                "characterP2": spaces.Discrete(len(self._char_list), dtype=np.uint8),
             }
         )
 
@@ -156,7 +156,8 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    ) -> tuple[dict[str, np.ndarray | np.uint8], dict[str, Any]]:
+        super().reset(seed=seed)
         self.expected_health = {"P1": 0, "P2": 0}
         self.expected_wins = {"P1": 0, "P2": 0}
         self.round_done = False
@@ -169,7 +170,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
     # Steps the emulator along by the requested amount of frames required for the agent to provide actions
     def step(
         self, action: np.integer
-    ) -> tuple[dict[str, np.ndarray], float, bool, bool, dict[str, Any]]:
+    ) -> tuple[dict[str, np.ndarray | np.uint8], float, bool, bool, dict[str, Any]]:
         self._sub_step(self.action_map[int(action)])
         self._check_done()
         terminated = False
@@ -203,7 +204,7 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
             obs["healthP2"],
             obs["sideP1"],
             obs["sideP2"],
-            self._char_list[cast(int, obs["characterP2"][0])],
+            self._char_list[int(obs["characterP2"])],
             obs["frame"].shape,
         )
         return obs["frame"]
@@ -212,14 +213,14 @@ class Environment(Env[dict[str, np.ndarray], np.integer]):
     def close(self):
         self.emu.close()
 
-    def _get_obs(self) -> dict[str, np.ndarray]:
+    def _get_obs(self) -> dict[str, np.ndarray | np.uint8]:
         return {
             "frame": self._data["frame"],
             "healthP1": np.array([self._data["healthP1"]], dtype=np.int16),
             "healthP2": np.array([self._data["healthP2"]], dtype=np.int16),
             "sideP1": np.array([self._data["sideP1"]], dtype=np.uint8),
             "sideP2": np.array([self._data["sideP2"]], dtype=np.uint8),
-            "characterP2": np.array([self._data["characterP2"]], dtype=np.uint8),
+            "characterP2": np.uint8(self._data["characterP2"]),
         }
 
     # Runs a set of action steps over a series of time steps

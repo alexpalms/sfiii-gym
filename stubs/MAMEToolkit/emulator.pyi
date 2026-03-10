@@ -1,8 +1,9 @@
 from typing import Any
 
 class Action:
-    value: int
-    def __init__(self, value: int) -> None: ...
+    address: str
+    port: str
+    def __init__(self, address: str, port: str) -> None: ...
 
 class Address:
     def __init__(self, address: str, data_type: str) -> None: ...

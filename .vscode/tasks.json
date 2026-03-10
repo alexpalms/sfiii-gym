@@ -48,31 +48,6 @@
         "command": "uv run pytest",
         "group": "none",
         "problemMatcher": []
-      },
-      {
-        "label": "Build Docker Image",
-        "type": "shell",
-        "command": "docker build -t project-name -f docker/Dockerfile .",
-        "group": "none",
-        "problemMatcher": []
-      },
-      {
-        "label": "Run Docker Container",
-        "dependsOn": [
-          "Build Docker Image"
-        ],
-        "dependsOrder": "sequence",
-        "type": "shell",
-        "command": "docker run -it project-name",
-        "group": "none",
-        "problemMatcher": []
-      },
-      {
-        "label": "Docs Autobuild",
-        "type": "shell",
-        "command": "uv run sphinx-autobuild docs/source/ docs/build/html",
-        "group": "none",
-        "problemMatcher": []
       }
     ]
 }
