@@ -90,28 +90,35 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             binary_path=None,
         )
 
-        self._char_list = [
-            "Gill",
-            "Alex",
-            "Ryu",
-            "Yun",
-            "Dudley",
-            "Necro",
-            "Hugo",
-            "Ibuki",
-            "Elena",
-            "Oro",
-            "Yang",
-            "Ken",
-            "Sean",
-            "Urien",
-            "Gouki",
-            "",
-            "Chun-Li",
-            "Makoto",
-            "Q",
-            "Twelve",
-            "Remy",
+        # Mapping from raw game character ID to name (ID 15 is unused)
+        self._char_id_to_name: dict[int, str] = {
+            0: "Gill",
+            1: "Alex",
+            2: "Ryu",
+            3: "Yun",
+            4: "Dudley",
+            5: "Necro",
+            6: "Hugo",
+            7: "Ibuki",
+            8: "Elena",
+            9: "Oro",
+            10: "Yang",
+            11: "Ken",
+            12: "Sean",
+            13: "Urien",
+            14: "Gouki",
+            16: "Chun-Li",
+            17: "Makoto",
+            18: "Q",
+            19: "Twelve",
+            20: "Remy",
+        }
+        # Contiguous index ↔ raw game ID mappings for the Discrete observation
+        self._char_id_to_index = {
+            raw_id: idx for idx, raw_id in enumerate(sorted(self._char_id_to_name))
+        }
+        self._char_index_to_name = [
+            self._char_id_to_name[raw_id] for raw_id in sorted(self._char_id_to_name)
         ]
 
         self.action_map: dict[int, list[Actions]] = {
@@ -145,7 +152,9 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
                 "healthP2": spaces.Box(low=-1, high=160, dtype=np.int16),
                 "sideP1": spaces.MultiBinary(1),
                 "sideP2": spaces.MultiBinary(1),
-                "characterP2": spaces.Discrete(len(self._char_list), dtype=np.uint8),
+                "characterP2": spaces.Discrete(
+                    len(self._char_id_to_name), dtype=np.uint8
+                ),
                 "stage": spaces.Box(low=1, high=10, dtype=np.uint8),
             }
         )
@@ -200,7 +209,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             obs["healthP2"],
             obs["sideP1"],
             obs["sideP2"],
-            self._char_list[int(obs["characterP2"])],
+            self._char_index_to_name[int(obs["characterP2"])],
             obs["stage"],
             frame.shape,
         )
@@ -217,7 +226,9 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             "healthP2": np.array([self._data["healthP2"]], dtype=np.int16),
             "sideP1": np.array([self._data["sideP1"]], dtype=np.uint8),
             "sideP2": np.array([self._data["sideP2"]], dtype=np.uint8),
-            "characterP2": np.uint8(self._data["characterP2"]),
+            "characterP2": np.uint8(
+                self._char_id_to_index[int(self._data["characterP2"])]
+            ),
             "stage": np.uint8(self.stage),
         }
 
