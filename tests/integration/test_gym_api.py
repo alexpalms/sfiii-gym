@@ -13,7 +13,7 @@ def env():
     """Create a real Environment instance with the actual ROM."""
     environment = Environment(
         "test-env",
-        "assets/rom",
+        "rom",
         difficulty=6,
         frame_ratio=6,
         render_mode="rgb_array",

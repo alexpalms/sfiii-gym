@@ -1,6 +1,6 @@
 from sfiii_gym.environment import Environment
 
-env = Environment("env1", "./assets/rom", render_mode="human", throttle=False)
+env = Environment("env1", "./rom", render_mode="human", throttle=False)
 obs, info = env.reset()
 cumulative_reward = 0
 while True:
