@@ -2,7 +2,7 @@
 
 import pytest
 
-from sfiii_gym.steps import game_settings, new_game, next_stage
+from sfiii_gym import game_settings, new_game, next_stage
 
 
 class TestGameSettings:

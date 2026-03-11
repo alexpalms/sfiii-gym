@@ -2,7 +2,7 @@
 
 from MAMEToolkit.emulator import Action
 
-from sfiii_gym.actions import Actions
+from sfiii_gym import Actions
 
 
 class TestActionsEnum:

@@ -5,23 +5,30 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sfiii-gym"
 version = "0.1.0"
-keywords = ["keyword1", "keyword2"]
+keywords = [
+    "street-fighter",
+    "sfiii",
+    "gymnasium",
+    "reinforcement-learning",
+    "fighting-game",
+    "arcade",
+]
 maintainers = [
   { name="Alessandro Palmas", email="alex@artificialtwin.com" },
 ]
 authors = [
   { name="Alessandro Palmas", email="alex@artificialtwin.com" },
 ]
-description = "Add your description here"
+description = "Gymnasium environment for Street Fighter III: 3rd Strike using the MAME emulator"
 readme = { file = "README.md", content-type = "text/markdown"}
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 
 requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",

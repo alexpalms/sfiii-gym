@@ -1,4 +1,4 @@
-from sfiii_gym.environment import Environment
+from sfiii_gym import Environment
 
 env = Environment("env1", "./rom", render_mode="human", throttle=False)
 obs, info = env.reset()

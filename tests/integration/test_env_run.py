@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from sfiii_gym.environment import Environment
+from sfiii_gym import Environment
 
 
 @pytest.fixture()

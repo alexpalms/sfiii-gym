@@ -5,7 +5,7 @@ from gymnasium.utils.env_checker import (
     check_env,  # pyright: ignore[reportUnknownVariableType]
 )
 
-from sfiii_gym.environment import Environment
+from sfiii_gym import Environment
 
 
 @pytest.fixture()
