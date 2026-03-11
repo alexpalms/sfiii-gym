@@ -87,6 +87,7 @@ convention = "numpy"
 
 [tool.ruff.lint.per-file-ignores]
 "src/**/__init__.py" = ["D104", "D107"]  # ignore module and __init__ docstrings
+"examples/**" = ["T20"]  # allow print in examples
 "tests/**" = ["S101"]  # allow asserts in tests
 
 [tool.ruff.format]

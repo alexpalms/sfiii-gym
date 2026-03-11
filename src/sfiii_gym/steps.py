@@ -1,16 +1,15 @@
+from typing import TypedDict
+
 from sfiii_gym.actions import Actions
 
-# A = Agent
-# C = Computer
-# H = Human
-# An enurable class used to specify the set of action steps required to perform different predefined tasks
-# E.g. changing the story mode difficulty, or starting a new game in single player story mode
+
+class Step(TypedDict):
+    wait: int
+    actions: list[Actions]
 
 
-def game_settings(
-    frame_ratio: int, difficulty: int
-) -> list[dict[str, int | list[Actions]]]:
-    steps = [
+def game_settings(frame_ratio: int, difficulty: int) -> list[Step]:
+    steps: list[Step] = [
         {"wait": 0, "actions": [Actions.SERVICE]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_UP]},
@@ -30,48 +29,48 @@ def game_settings(
         {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
     ]
     if (difficulty % 8) < 3:
-        steps += [
-            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_LEFT]}
+        steps.extend(
+            Step(wait=int(10 / frame_ratio), actions=[Actions.P1_LEFT])
             for _ in range(3 - (difficulty % 8))
-        ]
+        )
     else:
-        steps += [
-            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_RIGHT]}
+        steps.extend(
+            Step(wait=int(10 / frame_ratio), actions=[Actions.P1_RIGHT])
             for _ in range((difficulty % 8) - 3)
+        )
+    steps.extend(
+        [
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
+            {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
         ]
-    steps += [
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_DOWN]},
-        {"wait": int(10 / frame_ratio), "actions": [Actions.P1_JPUNCH]},
-    ]
+    )
     return steps
 
 
-def next_stage(frame_ratio: int) -> list[dict[str, int | list[Actions]]]:
-    return (
-        [{"wait": int(60 / frame_ratio), "actions": [Actions.P1_JPUNCH]}]
-        + [
-            {"wait": 0, "actions": [Actions.P1_JPUNCH]}
-            for _ in range(int(180 / frame_ratio))
-        ]
-        + [{"wait": int(60 / frame_ratio), "actions": [Actions.P1_JPUNCH]}]
+def next_stage(frame_ratio: int) -> list[Step]:
+    steps: list[Step] = [Step(wait=int(60 / frame_ratio), actions=[Actions.P1_JPUNCH])]
+    steps.extend(
+        Step(wait=0, actions=[Actions.P1_JPUNCH]) for _ in range(int(180 / frame_ratio))
     )
+    steps.append(Step(wait=int(60 / frame_ratio), actions=[Actions.P1_JPUNCH]))
+    return steps
 
 
-def new_game(frame_ratio: int) -> list[dict[str, int | list[Actions]]]:
+def new_game(frame_ratio: int) -> list[Step]:
     return [
         {"wait": 0, "actions": [Actions.SERVICE]},
         {"wait": int(30 / frame_ratio), "actions": [Actions.P1_UP]},

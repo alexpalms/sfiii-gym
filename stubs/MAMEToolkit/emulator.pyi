@@ -1,21 +1,24 @@
-from typing import Any
+import numpy as np
 
 class Action:
-    address: str
     port: str
-    def __init__(self, address: str, port: str) -> None: ...
+    field: str
+    def __init__(self, port: str, field: str) -> None: ...
+    def get_lua_string(self) -> str: ...
 
 class Address:
-    def __init__(self, address: str, data_type: str) -> None: ...
+    address: str
+    mode: str
+    def __init__(self, address: str, mode: str) -> None: ...
+    def get_lua_string(self) -> str: ...
 
 class Emulator:
     def __init__(
         self,
         env_id: str,
         roms_path: str,
-        game_name: str,
+        game_id: str,
         memory_addresses: dict[str, Address],
-        *,
         frame_ratio: int = ...,
         render: bool = ...,
         throttle: bool = ...,
@@ -24,5 +27,5 @@ class Emulator:
         debug: bool = ...,
         binary_path: str | None = ...,
     ) -> None: ...
-    def step(self, actions: list[int]) -> dict[str, Any]: ...
+    def step(self, actions: list[Action]) -> dict[str, np.ndarray]: ...
     def close(self) -> None: ...

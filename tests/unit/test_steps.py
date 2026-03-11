@@ -2,7 +2,6 @@
 
 import pytest
 
-from sfiii_gym.actions import Actions
 from sfiii_gym.steps import game_settings, new_game, next_stage
 
 

@@ -6,10 +6,10 @@ from typing import Any
 
 import numpy as np
 from gymnasium import Env, spaces
-from MAMEToolkit.emulator import Action, Address, Emulator
+from MAMEToolkit.emulator import Address, Emulator
 
 from sfiii_gym.actions import Actions
-from sfiii_gym.steps import game_settings, new_game, next_stage
+from sfiii_gym.steps import Step, game_settings, new_game, next_stage
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -114,7 +114,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             "Remy",
         ]
 
-        self.action_map: dict[int, list[Action]] = {
+        self.action_map: dict[int, list[Actions]] = {
             0: [],
             1: [Actions.P1_LEFT],
             2: [Actions.P1_LEFT, Actions.P1_UP],
@@ -198,6 +198,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
 
     def render(self) -> np.ndarray:
         obs = self._get_obs()
+        frame: np.ndarray = np.asarray(obs["frame"])
         logger.info(
             "healthP1=%s healthP2=%s sideP1=%s sideP2=%s characterP2=%s frame_shape=%s",
             obs["healthP1"],
@@ -205,9 +206,9 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             obs["sideP1"],
             obs["sideP2"],
             self._char_list[int(obs["characterP2"])],
-            obs["frame"].shape,
+            frame.shape,
         )
-        return obs["frame"]
+        return frame
 
     # Safely closes emulator
     def close(self):
@@ -225,7 +226,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
 
     # Runs a set of action steps over a series of time steps
     # Used for transitioning the emulator through non-learnable gameplay, aka. title screens, character selects
-    def _run_steps(self, steps: list[dict[str, int | list[Actions]]]):
+    def _run_steps(self, steps: list[Step]) -> None:
         for step in steps:
             for _ in range(step["wait"]):
                 self.emu.step([])
@@ -311,7 +312,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
 
     # Steps the emulator along by one time step and feeds in any actions that require pressing
     # Takes the data returned from the step and updates book keeping variables
-    def _sub_step(self, actions: list[Action]) -> None:
+    def _sub_step(self, actions: list[Actions]) -> None:
         self._data = self.emu.step([action.value for action in actions])
 
         p1_diff = self.expected_health["P1"] - self._data["healthP1"]

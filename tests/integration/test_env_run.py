@@ -1,5 +1,6 @@
 """Integration test: full environment run similar to examples/run_env.py."""
 
+import numpy as np
 import pytest
 
 from sfiii_gym.environment import Environment
@@ -22,9 +23,9 @@ def env():
 class TestEnvironmentRun:
     """Simulate an episode loop similar to examples/run_env.py."""
 
-    def test_run_episode_loop(self, env) -> None:
+    def test_run_episode_loop(self, env: Environment) -> None:
         """Run a short episode loop checking the same flow as run_env.py."""
-        obs, info = env.reset()
+        _obs, _info = env.reset()
 
         cumulative_reward = 0.0
         max_steps = 50
@@ -32,31 +33,31 @@ class TestEnvironmentRun:
         for _ in range(max_steps):
             env.render()
             action = env.action_space.sample()
-            obs, reward, terminated, truncated, info = env.step(action)
+            _obs, reward, terminated, truncated, _info = env.step(action)
             cumulative_reward += reward
 
             assert isinstance(reward, float)
-            assert isinstance(info, dict)
-            assert "round_done" in info
+            assert isinstance(_info, dict)
+            assert "round_done" in _info
 
             if terminated or truncated:
-                obs, info = env.reset()
+                _obs, _info = env.reset()
                 cumulative_reward = 0.0
 
-    def test_multiple_episodes(self, env) -> None:
+    def test_multiple_episodes(self, env: Environment) -> None:
         """Run multiple episodes to ensure reset works correctly between them."""
-        for episode in range(3):
-            obs, info = env.reset()
+        for _episode in range(3):
+            obs, _info = env.reset()
             assert isinstance(obs, dict)
             assert env.observation_space.contains(obs)
 
-            for step_num in range(10):
+            for _step_num in range(10):
                 action = env.action_space.sample()
-                obs, reward, terminated, truncated, info = env.step(action)
+                obs, _reward, terminated, truncated, _info = env.step(action)
                 if terminated or truncated:
                     break
 
-    def test_render_between_steps(self, env) -> None:
+    def test_render_between_steps(self, env: Environment) -> None:
         """Verify render can be called repeatedly between steps."""
         env.reset()
 
@@ -68,12 +69,13 @@ class TestEnvironmentRun:
             frame = env.render()
             assert frame.shape == (224, 384, 3)
 
-    def test_all_action_types_during_run(self, env) -> None:
+    def test_all_action_types_during_run(self, env: Environment) -> None:
         """Exercise every action type in the action map during a run."""
         env.reset()
 
-        for action_id in range(env.action_space.n):
-            obs, reward, terminated, truncated, info = env.step(action_id)
+        n_actions = len(env.action_map)
+        for action_id in range(n_actions):
+            obs, _reward, terminated, truncated, _info = env.step(np.intp(action_id))
             assert isinstance(obs, dict)
             if terminated or truncated:
                 env.reset()
