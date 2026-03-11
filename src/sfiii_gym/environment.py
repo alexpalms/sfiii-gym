@@ -146,6 +146,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
                 "sideP1": spaces.MultiBinary(1),
                 "sideP2": spaces.MultiBinary(1),
                 "characterP2": spaces.Discrete(len(self._char_list), dtype=np.uint8),
+                "stage": spaces.Box(low=1, high=10, dtype=np.uint8),
             }
         )
 
@@ -158,12 +159,6 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[dict[str, np.ndarray | np.uint8], dict[str, Any]]:
         super().reset(seed=seed)
-        self.expected_health = {"P1": 0, "P2": 0}
-        self.expected_wins = {"P1": 0, "P2": 0}
-        self.round_done = False
-        self.stage_done = False
-        self.game_done = False
-        self.stage = 1
         self._new_game()
         return self._get_obs(), {}
 
@@ -200,12 +195,13 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
         obs = self._get_obs()
         frame: np.ndarray = np.asarray(obs["frame"])
         logger.info(
-            "healthP1=%s healthP2=%s sideP1=%s sideP2=%s characterP2=%s frame_shape=%s",
+            "healthP1=%s healthP2=%s sideP1=%s sideP2=%s characterP2=%s stage=%s frame_shape=%s",
             obs["healthP1"],
             obs["healthP2"],
             obs["sideP1"],
             obs["sideP2"],
             self._char_list[int(obs["characterP2"])],
+            obs["stage"],
             frame.shape,
         )
         return frame
@@ -222,6 +218,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             "sideP1": np.array([self._data["sideP1"]], dtype=np.uint8),
             "sideP2": np.array([self._data["sideP2"]], dtype=np.uint8),
             "characterP2": np.uint8(self._data["characterP2"]),
+            "stage": np.uint8(self.stage),
         }
 
     # Runs a set of action steps over a series of time steps
@@ -294,7 +291,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             and self.expected_wins["P2"] == data["winsP2"]
         ):
             reward = self._data["reward"]
-            self._data = self.emu.step([])
+            self._sub_step([])
             self._data["reward"] += reward
         self.expected_wins = {"P1": data["winsP1"], "P2": data["winsP2"]}
         return data

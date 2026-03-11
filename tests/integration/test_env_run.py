@@ -79,3 +79,17 @@ class TestEnvironmentRun:
             assert isinstance(obs, dict)
             if terminated or truncated:
                 env.reset()
+
+    def test_stage_observation(self, env: Environment) -> None:
+        """Verify the stage observation is present and starts at 1."""
+        obs, _info = env.reset()
+        assert "stage" in obs
+        assert obs["stage"] == np.uint8(1)
+
+        for _ in range(10):
+            action = env.action_space.sample()
+            obs, _reward, terminated, truncated, _info = env.step(action)
+            assert "stage" in obs
+            assert 1 <= int(obs["stage"]) <= 10
+            if terminated or truncated:
+                break
