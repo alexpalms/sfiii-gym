@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="./img/sfiii3n.jpg" alt="SFIII Gym" width="20%"/>
+    <img src="./img/sfiii3n.jpg" alt="SFIII Gym" width="30%"/>
 </p>
 
 <p align="center">
@@ -24,6 +24,10 @@
 # SFIII Gym
 
 A [Gymnasium](https://gymnasium.farama.org/) environment for **Street Fighter III: 3rd Strike** using the [MAME](https://www.mamedev.org/) emulator. Train reinforcement learning agents to play one of the most iconic fighting games ever made.
+
+<p align="center">
+    <img src="./img/sfiii-gym.gif" alt="SFIII Gym" width="100%"/>
+</p>
 
 ## Features
 
