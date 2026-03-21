@@ -84,7 +84,7 @@ class TestEnvironmentRun:
         """Verify the stage observation is present and starts at 1."""
         obs, _info = env.reset()
         assert "stage" in obs
-        assert obs["stage"] == np.uint8(1)
+        assert obs["stage"] == np.array([1], dtype=np.uint8)
 
         for _ in range(10):
             action = env.action_space.sample()

@@ -148,14 +148,14 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
                 "frame": spaces.Box(
                     low=0, high=255, shape=(224, 384, 3), dtype=np.uint8
                 ),
-                "healthP1": spaces.Box(low=-1, high=160, dtype=np.int16),
-                "healthP2": spaces.Box(low=-1, high=160, dtype=np.int16),
+                "healthP1": spaces.Box(low=-1, high=160, shape=(1,), dtype=np.int16),
+                "healthP2": spaces.Box(low=-1, high=160, shape=(1,), dtype=np.int16),
                 "sideP1": spaces.MultiBinary(1),
                 "sideP2": spaces.MultiBinary(1),
                 "characterP2": spaces.Discrete(
                     len(self._char_id_to_name), dtype=np.uint8
                 ),
-                "stage": spaces.Box(low=1, high=10, dtype=np.uint8),
+                "stage": spaces.Box(low=1, high=10, shape=(1,), dtype=np.uint8),
             }
         )
 
@@ -229,7 +229,7 @@ class Environment(Env[dict[str, np.ndarray | np.uint8], np.integer]):
             "characterP2": np.uint8(
                 self._char_id_to_index[int(self._data["characterP2"])]
             ),
-            "stage": np.uint8(self.stage),
+            "stage": np.array([self.stage], dtype=np.uint8),
         }
 
     # Runs a set of action steps over a series of time steps
