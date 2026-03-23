@@ -90,6 +90,6 @@ class TestEnvironmentRun:
             action = env.action_space.sample()
             obs, _reward, terminated, truncated, _info = env.step(action)
             assert "stage" in obs
-            assert 1 <= int(obs["stage"]) <= 10
+            assert 1 <= int(obs["stage"][0]) <= 10
             if terminated or truncated:
                 break
